@@ -1,0 +1,3 @@
+# The bootstrap scripts are piped into `bash` and `iex`, where a CRLF line ending
+# breaks the script. Pin text files to LF regardless of anyone's git config.
+* text=auto eol=lf
