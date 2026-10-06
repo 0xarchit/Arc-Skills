@@ -1,9 +1,8 @@
 import re
 import sys
 
-ZWSP = "​"
-WORD = re.compile(r"\w")
-INLINE_CODE = re.compile(r"(`+[^`]*`+)")
+from clean import DASHES, INVISIBLE, NAMES, QUOTES, SPACES
+
 REQUIRED_KEYS = ("title", "slug", "excerpt", "publishedAt", "tags", "coverImage")
 
 
@@ -35,27 +34,20 @@ def check(text):
     lines = text.splitlines(keepends=True)
     kinds = classify(lines)
     errors = []
-    warnings = []
 
-    if ZWSP not in text:
-        errors.append("no zero-width spaces present, the stealth pass did not run")
-
-    for index, (line, kind) in enumerate(zip(lines, kinds), start=1):
-        if ZWSP not in line:
-            continue
-        if kind in ("frontmatter", "fence", "code"):
-            errors.append(f"line {index}: zero-width space inside {kind}")
-            continue
-        for match in re.finditer(re.escape(ZWSP), line):
-            following = line[match.end():match.end() + 1]
-            if not following or not WORD.match(following):
-                errors.append(
-                    f"line {index}: zero-width space not followed by a word character"
-                )
-        chunks = INLINE_CODE.split(line)
-        for chunk_index in range(1, len(chunks), 2):
-            if ZWSP in chunks[chunk_index]:
-                errors.append(f"line {index}: zero-width space inside inline code")
+    for index, line in enumerate(lines, start=1):
+        for char in line:
+            if char in INVISIBLE:
+                label = NAMES.get(char, "invisible character")
+            elif char in SPACES:
+                label = NAMES.get(char, "non-standard space")
+            elif char in QUOTES:
+                label = NAMES.get(char, "curly quote")
+            elif char in DASHES:
+                label = DASHES[char]
+            else:
+                continue
+            errors.append(f"line {index}: {label} (U+{ord(char):04X})")
 
     if kinds and kinds[0] == "frontmatter":
         closing = next(
@@ -83,9 +75,7 @@ def check(text):
     if sum(1 for kind in kinds if kind == "fence") % 2:
         errors.append("unbalanced code fences")
 
-    warnings.append(f"{text.count(ZWSP)} zero-width spaces placed at word gaps")
-
-    return errors, warnings
+    return errors
 
 
 def main():
@@ -93,10 +83,8 @@ def main():
     with open(source, "r", encoding="utf-8") as handle:
         text = handle.read()
 
-    errors, warnings = check(text)
+    errors = check(text)
 
-    for warning in warnings:
-        print(f"note: {warning}")
     for error in errors:
         print(f"error: {error}")
 
@@ -104,7 +92,7 @@ def main():
         print(f"\n{len(errors)} problem(s) in {source}")
         return 1
 
-    print(f"\n{source} is clean")
+    print(f"{source} is clean: no invisible characters, no curly quotes, no dashes")
     return 0
 
 

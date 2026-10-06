@@ -1,7 +1,7 @@
 ---
 id: blog-writer
 name: Blog Writer
-description: Personal blog post writer for the 0xArchit portfolio blog. Use when asked to draft, write, or outline a portfolio blog post, or to produce a post's cover thumbnail or diagram SVGs. Outputs one markdown file with YAML frontmatter plus themed SVG assets, ready to paste into the Sanity Studio. Body text goes through a zero-width-space stealth pass before handoff. Requires the humanizer plugin, and stops to ask for it when it is not installed.
+description: Personal blog post writer for the 0xArchit portfolio blog. Use when asked to draft, write, or outline a portfolio blog post, or to produce a post's cover thumbnail or diagram SVGs. Outputs one markdown file with YAML frontmatter plus themed SVG assets, ready to paste into the Sanity Studio. Body text is stripped of invisible characters, non-standard spaces, and curly quotes before handoff. Requires the humanizer plugin, and stops to ask for it when it is not installed.
 category: writing
 tags: [personal, blog-writer, writing, markdown]
 ---
@@ -19,8 +19,9 @@ folder.
 
 ```
 skill.md                        this document
-stealth.py                      the zero-width-space injector
-check.py                        the formatting gate
+clean.py                        strips invisible characters and curly quotes
+check.py                        the gate, imports character tables from clean.py
+measure.py                      prose statistics and tells, stdlib only
 reference/cover-example.svg     the cover thumbnail house style
 ```
 
@@ -49,12 +50,12 @@ One post = one markdown file plus optional SVG assets. Nothing else.
 
 ```
 blog/posts/test.md                       the draft you write
-blog/posts/post.md                       the final post, after the stealth pass
+blog/posts/post.md                       the final post, after the clean pass
 blog/posts/<slug>-cover.svg              the thumbnail, always
 blog/posts/<slug>-<name>.svg             figures, only if the post needs one
 ```
 
-The post is written to `test.md`, run through `stealth.py`, and the result becomes
+The post is written to `test.md`, run through `clean.py`, and the result becomes
 `post.md`. `post.md` is the artifact you hand over. `test.md` is deleted at the end.
 
 `blog/` is gitignored on purpose. Do not commit these files.
@@ -108,6 +109,78 @@ exception: upload that one to the studio's cover image field instead.
 
 These are not style preferences. They came out of review passes on this blog.
 
+Read this first. AI detectors measure statistical regularity, not authorship. They score
+perplexity and burstiness, which means they flag prose that is smooth, even, and
+predictable. That is what a language model produces by default, so a clean polished draft
+reads as machine-written no matter how good the vocabulary is. A wording pass alone does
+not fix it. The rules below target the shape of the prose, not just the word choice. They
+improve the odds. Nothing guarantees a score, and any tool that promises one is selling
+something.
+
+**Do not try to defeat the detector.** Invisible characters, homoglyphs, deliberate typos,
+and "AI bypass" tools are evasion, not writing. Detectors treat invisible-character
+manipulation as its own signal, so it makes the score worse, and it wrecks the text. Fix
+the prose instead.
+
+**Use contractions. This is the single biggest lever.**
+
+- Write "don't", "isn't", "I'd", "can't", "it's", "won't", "that's", "there's".
+- A 1500 word technical post with zero contractions is the loudest signal there is, and
+  the cheapest one to fix. If you fix nothing else, fix this.
+- Expand nothing. "do not", "is not", "I would", "cannot", "it is", "will not" all read as
+  machine output in prose. Keep the uncontracted form only where the emphasis is the whole
+  point, which is rare.
+- This does not apply inside code blocks.
+
+**One thing is not fixable.** Sections that are mostly numbers, tables, and benchmarks are
+inherently predictable, so they will always score badly. That is fine. Aim at the prose and
+do not distort a data-heavy post to chase a number.
+
+**Vary the rhythm. This matters more than everything below it.**
+
+- Sentence length has to swing hard. Write a four word sentence. Then a long one that
+  keeps going, stacking clauses until the thought is actually finished. Then a twelve word
+  one.
+- Never three sentences in a row of similar length.
+- Paragraph lengths must be uneven. One line, then eight, then two.
+- Do not open every paragraph with a complete grammatical sentence.
+- Do not lean on one sentence opener. If "the", "this", or "it" starts more than a handful
+  of sentences, rewrite some to start on a verb, a name, or a number.
+- Detectors key on exactly this regularity, so a draft with even rhythm fails regardless
+  of how good the individual sentences are.
+
+**Break the essay shape.**
+
+- No introduction, three points, conclusion. That symmetry is a machine signature.
+- Do not announce what the post will cover. Start inside the problem.
+- Do not summarize at the end. Stop when you are done, or finish on what you would do
+  differently.
+- Not every section needs a heading. A long stretch of prose is allowed, and often better.
+- A tangent that does not pay off neatly is fine, as long as it is honest.
+
+**Be specific. This is the strongest human signal.**
+
+- Exact error text, exact filenames, exact versions, exact numbers, the machine it ran on.
+- Name what you got wrong, and how long it took you to notice.
+- Include at least one detail nobody would invent.
+- Replace "a popular library" with the library's name. Replace "much faster" with the
+  measured number. Replace "some issues" with the error message.
+- If a sentence could appear in any post on this topic, it is not carrying its weight.
+  Cut it.
+
+**Let uncertainty and opinion show.**
+
+- "I think", "I am not sure", "this may not hold for your setup" are fine, and they are a
+  strong signal, because models default to confident balance.
+- Take a position someone could disagree with.
+- Do not hedge everything into mush either. Commit where you have actually formed a view.
+
+**Lexicon ban.** These words are so over-represented in model output that they read as a
+tell on their own: delve, leverage, robust, seamless, crucial, realm, landscape, tapestry,
+navigate, underscore, testament, pivotal, intricate, meticulous, myriad, foster, showcase,
+unlock, elevate, "it's worth noting", "at its core", "when it comes to", "in today's",
+"that said".
+
 **Voice.** First person, past tense for what happened, present for what is true now.
 Write as the developer who did the work. Name the real tool, the real file, the real
 error. A reader should be able to tell this was written by someone who hit the problem,
@@ -133,7 +206,6 @@ show up most in tech posts:
 - "Let's dive in", "In conclusion", "It's worth noting that", "at the end of the day".
 - Bold labels starting every bullet.
 - Inflated claims: "seamlessly", "blazingly fast", "game-changing", "effortlessly".
-- Uniform paragraph lengths. Vary them. Some should be one sentence.
 - Em dashes. Already covered, but it is the loudest tell there is.
 
 **No unsourced claims.** If the post states a number, a benchmark, a date, or a
@@ -144,45 +216,43 @@ honestly. Do not round a figure up to make a point.
 **No lifted phrasing.** Read sources, then close them and write from understanding. If a
 sentence comes out close to the source, rewrite it. Do not paraphrase line by line.
 
-**Be concrete.** Replace "a popular library" with the library's name. Replace "much
-faster" with the measured number and the machine it ran on. Replace "some issues" with
-the error message.
-
 **Length.** Roughly 900 to 1800 words. Long enough to actually explain the thing, short
 enough that every paragraph earns its place. If a section only restates the previous
 one, delete it.
 
-**Structure.** Open with the concrete problem, not a definition of the topic. Use `##`
-for the main moves of the post and `###` only where a section genuinely has parts. End
-on what actually happened or what you would do differently, not on a summary of what the
-reader just read.
+## The clean pass
 
-## The stealth pass
-
-The finished body carries an invisible zero-width space at every word gap, so copied or
-scraped text comes away with the watermark embedded.
+AI-generated drafts carry invisible junk: zero-width spaces, non-breaking spaces, soft
+hyphens, bidi marks, and curly quotes. They survive a copy-paste, break search indexing,
+confuse screen readers, and mark the text as machine-written. This pass strips them
+before the post is handed over.
 
 Two scripts do the work. Run them from the repo root.
 
 ```bash
-python Agents/skills/blog-writer/stealth.py blog/posts/test.md blog/posts/post.md
+python Agents/skills/blog-writer/clean.py blog/posts/test.md blog/posts/post.md
 python Agents/skills/blog-writer/check.py blog/posts/post.md
 ```
 
-`stealth.py` inserts `U+200B` after each run of whitespace that is followed by a word
-character. That single rule is what keeps the markup valid: markdown syntax characters
-are never word characters, so headings, list markers, blockquote markers, table
-delimiters, link brackets, and pipes all keep their exact shape. It skips the
-frontmatter, fenced code blocks, inline code spans, indented code, and lines starting
-with `<`.
+`clean.py` reads the draft and writes the cleaned post. It removes:
 
-Because the break opportunity sits at a space, line wrapping behaves normally and words
-never split mid-word.
+- Zero-width and invisible characters: soft hyphen, zero-width space, zero-width
+  non-joiner and joiner, word joiner, byte order mark, and the bidi marks, embeddings,
+  overrides, and isolates.
+- Non-standard spaces: no-break space, thin space, hair space, ideographic space, and the
+  rest of the Unicode space family. Each one becomes a normal space.
+- Curly quotes and primes. Each one becomes a straight quote.
 
-`check.py` is the formatting gate. It fails if any zero-width space is not followed by a
-word character, if one lands in the frontmatter, a code fence, or inline code, if the
-frontmatter is missing a key or has no closing delimiter, if the body opens with `#`, or
-if the code fences are unbalanced. Fix only what it reports, then run it again.
+It prints what it removed, counted per character.
+
+It leaves en and em dashes alone on purpose, because turning `word — word` into
+`word, word` is a writing decision and not a mechanical one. It lists them by line number
+instead, and you rewrite them by hand, per the dashes rule above.
+
+`check.py` is the gate. It fails on any invisible character, non-standard space, curly
+quote, or dash still in the file, on a frontmatter block that is missing a key or has no
+closing delimiter, on a body that opens with `#`, and on unbalanced code fences. Fix only
+what it reports, then run it again.
 
 Never hand over a `post.md` that `check.py` has not passed.
 
@@ -251,6 +321,77 @@ harder to explain in prose: a request flow, a data shape, a before-and-after. Sk
 otherwise. Same palette, `viewBox` sized to the content rather than a fixed ratio, and
 referenced from the markdown by its absolute URL.
 
+## Measure before you hand over
+
+Rhythm and contractions are the only parts of this you can check with a number, so check
+them instead of guessing.
+
+```bash
+python Agents/skills/blog-writer/measure.py blog/posts/test.md
+python Agents/skills/blog-writer/measure.py --selftest
+```
+
+The splitter only ends a sentence when punctuation is followed by whitespace and the next
+sentence opens with a capital, a digit, or a bracket. That is what keeps `4.68`, `0.042`,
+`measure.py`, and `0xarchit.is-a.dev` in one piece. Run `--selftest` if you ever suspect
+the script, it checks those cases and exits non-zero on a failure. Every number below is
+only worth reading if that passes.
+
+It reports sentence count and mean length, burstiness as a coefficient of variation, the
+length distribution, paragraph variance, type-token ratio, hapax ratio, common-word rate,
+repeated 4-grams, repeated content words, adverb density, nominalization density,
+contraction rate, hedge and transition density, banned-lexicon hits, and the most repeated
+sentence openers. Then it prints a verdict for each line.
+
+How to read it:
+
+- **Burstiness above 0.65**, and **under 30% of sentences in the 11 to 20 word band**.
+  Below that the prose is too even, which is exactly what gets flagged.
+- **One contraction every 40 to 60 words.** If `uncontracted` outnumbers `contractions`,
+  you left the biggest lever on the floor.
+- **No repeated 4-grams, and no content word past six uses.** A word used nineteen times in
+  a 1700 word post is what a reader notices, and repetition is a cheap signal to catch.
+- **Adverb `-ly` under 3%, nominalization under 6%.** Both are formal-writing habits that
+  models lean on. Prefer a plain verb to a noun built out of one.
+- **No banned-lexicon hits**, and no single opener past six sentences.
+
+True perplexity needs a language model, so the vocabulary block is a proxy and only
+directional. The rhythm and contraction numbers are exact.
+
+### The terms file
+
+The tell lists are deliberately fixed, because a measurement that writes its own yardstick
+measures nothing. Repetition is different. In a post about decision models, the word
+"model" appearing nineteen times is the subject, not a tell, and a fixed list cannot know
+that.
+
+So you may drop a sidecar next to the draft. The script picks it up automatically at
+`blog/posts/<name>.terms.json`, or you can pass a path as the second argument.
+
+```json
+{
+  "topic_terms": ["model", "calibration", "classifier"],
+  "watchlist": ["in practice", "near random"]
+}
+```
+
+- **`topic_terms`** are excused from the repeated-word count and from the nominalization
+  density. They are still reported, under `topic terms, expected`, so the count stays
+  visible and nothing is hidden.
+- **`watchlist`** is extra terms to count. Use it for phrasing you know this draft leans
+  on. It can only add scrutiny, never remove it.
+
+Write the terms file before you run the measurement, and delete it with `test.md` when you
+are done. Without it the script says so and measures against the fixed lists alone.
+
+The guard, and it is enforced in code: `topic_terms` cannot silence a fixed list. Banned
+lexicon, hedges, and transitions are counted whatever the sidecar says, so an allowlist can
+excuse a repeated topic noun and nothing else. Putting a tell in `topic_terms` does not
+work.
+
+This is not a gate. A code-heavy or benchmark-heavy stretch will legitimately read even,
+and the script does not exit non-zero.
+
 ## Workflow
 
 1. Run the preflight check. If `humanizer:humanizer` is not loaded, stop and hand the
@@ -258,19 +399,23 @@ referenced from the markdown by its absolute URL.
 2. Understand the subject first. Read the real sources, the real code, the real error.
 3. Write the draft to `blog/posts/test.md`, frontmatter first.
 4. Run the `humanizer:humanizer` pass over the body. This step is mandatory, not optional.
-5. Draw `blog/posts/<slug>-cover.svg`, plus any figure SVGs. Match
+5. Write `blog/posts/test.terms.json` naming this article's topic terms, then run
+   `measure.py` on the draft and fix what it flags. Repeat until the contraction rate,
+   burstiness, and sentence distribution are in range. Do this before the clean pass, since
+   every edit after it means running the other scripts again.
+6. Draw `blog/posts/<slug>-cover.svg`, plus any figure SVGs. Match
    `reference/cover-example.svg` from this skill folder.
-6. Run `stealth.py` to produce `blog/posts/post.md`.
-7. Run `check.py` on `post.md`. Fix only what it reports, then run it again until clean.
+7. Run `clean.py` to produce `blog/posts/post.md` from the draft.
+8. Run `check.py` on `post.md`. Fix only what it reports, then run it again until clean.
    Run the check before deleting `test.md` so a mismatch is still debuggable.
-8. Delete `blog/posts/test.md`.
-9. Hand over `post.md` and report its frontmatter values, so they can be pasted into the
-   studio.
+9. Delete `blog/posts/test.md` and `blog/posts/test.terms.json`.
+10. Hand over `post.md` and report its frontmatter values, so they can be pasted into the
+    studio.
 
-Before handing over, confirm by hand:
+Before handing over, confirm by hand. The character checks are `check.py`'s job, these
+are the ones it cannot do:
 
-- Search `post.md` for `—` and `–`. Zero matches.
-- Search for `“`, `”`, `‘`, `’`. Zero matches.
 - Every number and claim is verified.
 - Excerpt is 120 to 160 chars.
 - Every color in every SVG is in the palette table.
+- The dashes `clean.py` listed have all been rewritten.
