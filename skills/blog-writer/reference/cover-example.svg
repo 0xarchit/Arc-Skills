@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="Headless CMS: content stored in Sanity flows as JSON into a custom frontend">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A192F"/>
+      <stop offset="0.5" stop-color="#112240"/>
+      <stop offset="1" stop-color="#0A192F"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#64FFDA"/>
+      <stop offset="1" stop-color="#CCD6F6"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="40" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <circle cx="600" cy="330" r="150" fill="#64FFDA" opacity="0.06" filter="url(#glow)"/>
+
+  <rect x="1" y="1" width="1198" height="673" fill="none" stroke="#233554" stroke-width="2" rx="18"/>
+
+  <text x="80" y="120" font-family="Menlo, Consolas, monospace" font-size="22" letter-spacing="6" fill="#64FFDA">HEADLESS CMS</text>
+  <text x="80" y="176" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="46" font-weight="700" fill="#CCD6F6">Content is data,</text>
+  <text x="80" y="230" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="46" font-weight="700" fill="#CCD6F6">the site is <tspan fill="#64FFDA">just a reader</tspan></text>
+
+  <g>
+    <rect x="120" y="330" width="300" height="230" rx="16" fill="#112240" stroke="#233554" stroke-width="2"/>
+    <text x="150" y="378" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="24" font-weight="700" fill="#CCD6F6">Sanity Studio</text>
+    <text x="150" y="406" font-family="Menlo, Consolas, monospace" font-size="15" fill="#8892B0">where posts live</text>
+    <rect x="150" y="430" width="240" height="20" rx="6" fill="#233554"/>
+    <rect x="150" y="462" width="200" height="20" rx="6" fill="#233554"/>
+    <rect x="150" y="494" width="240" height="20" rx="6" fill="#233554"/>
+    <rect x="150" y="526" width="150" height="20" rx="6" fill="#64FFDA" opacity="0.5"/>
+  </g>
+
+  <g>
+    <line x1="440" y1="445" x2="740" y2="445" stroke="url(#accent)" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
+    <polygon points="740,435 764,445 740,455" fill="#64FFDA"/>
+    <rect x="510" y="410" width="150" height="34" rx="17" fill="#0A192F" stroke="#64FFDA" stroke-width="1.5"/>
+    <text x="585" y="433" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="16" fill="#64FFDA">JSON over HTTP</text>
+  </g>
+
+  <g>
+    <rect x="780" y="330" width="300" height="230" rx="16" fill="#112240" stroke="#233554" stroke-width="2"/>
+    <rect x="780" y="330" width="300" height="44" rx="16" fill="#0A192F"/>
+    <circle cx="806" cy="352" r="5" fill="#233554"/>
+    <circle cx="824" cy="352" r="5" fill="#233554"/>
+    <circle cx="842" cy="352" r="5" fill="#233554"/>
+    <text x="1050" y="357" text-anchor="end" font-family="Menlo, Consolas, monospace" font-size="13" fill="#8892B0">/blog</text>
+    <rect x="806" y="396" width="118" height="140" rx="10" fill="#0A192F" stroke="#233554" stroke-width="1.5"/>
+    <rect x="936" y="396" width="118" height="140" rx="10" fill="#0A192F" stroke="#233554" stroke-width="1.5"/>
+    <rect x="822" y="412" width="86" height="46" rx="6" fill="#233554"/>
+    <rect x="952" y="412" width="86" height="46" rx="6" fill="#233554"/>
+    <rect x="822" y="470" width="86" height="10" rx="5" fill="#64FFDA" opacity="0.7"/>
+    <rect x="952" y="470" width="86" height="10" rx="5" fill="#64FFDA" opacity="0.7"/>
+    <rect x="822" y="490" width="70" height="8" rx="4" fill="#8892B0"/>
+    <rect x="952" y="490" width="70" height="8" rx="4" fill="#8892B0"/>
+    <rect x="822" y="506" width="60" height="8" rx="4" fill="#8892B0"/>
+    <rect x="952" y="506" width="60" height="8" rx="4" fill="#8892B0"/>
+  </g>
+
+  <text x="270" y="605" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="15" fill="#8892B0">write and publish</text>
+  <text x="930" y="605" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="15" fill="#8892B0">render in your own style</text>
+</svg>

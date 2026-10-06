@@ -12,6 +12,20 @@ Produces a finished blog post for the portfolio's Sanity-backed blog at `/blog`.
 The blog is decoupled: content lives in Sanity, this skill writes the files a human
 pastes into the Studio.
 
+## Files in this skill
+
+Everything this skill needs travels with it. Nothing here reads a file outside this
+folder.
+
+```
+skill.md                        this document
+stealth.py                      the zero-width-space injector
+check.py                        the formatting gate
+reference/cover-example.svg     the cover thumbnail house style
+```
+
+The only paths it writes to are in the target project, under `blog/posts/`.
+
 ## Preflight
 
 This skill depends on the `humanizer:humanizer` skill. Check it is loaded before writing
@@ -46,7 +60,7 @@ The post is written to `test.md`, run through `stealth.py`, and the result becom
 `blog/` is gitignored on purpose. Do not commit these files.
 
 The frontmatter is a paste sheet for the Sanity Studio, not something the build reads.
-Every key maps to a field in `blog/schemaTypes/post.ts`.
+Each key maps to a field in the Sanity post schema, listed in the table below.
 
 ## Frontmatter
 
@@ -198,9 +212,8 @@ fallbacks and set them per text element.
 
 Do not link a webfont, do not use `@import`, do not reference Manrope or Inter.
 
-**Open `blog/posts/firstpost-cover.svg` before drawing.** It is the reference
-implementation and the house style. Copy its construction rather than inventing a new
-one.
+**Open `reference/cover-example.svg` before drawing.** It ships inside this skill folder
+and is the house style. Copy its construction rather than inventing a new one.
 
 **Rules for every SVG.**
 
@@ -246,7 +259,7 @@ referenced from the markdown by its absolute URL.
 3. Write the draft to `blog/posts/test.md`, frontmatter first.
 4. Run the `humanizer:humanizer` pass over the body. This step is mandatory, not optional.
 5. Draw `blog/posts/<slug>-cover.svg`, plus any figure SVGs. Match
-   `blog/posts/firstpost-cover.svg`.
+   `reference/cover-example.svg` from this skill folder.
 6. Run `stealth.py` to produce `blog/posts/post.md`.
 7. Run `check.py` on `post.md`. Fix only what it reports, then run it again until clean.
    Run the check before deleting `test.md` so a mismatch is still debuggable.
