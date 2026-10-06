@@ -1,0 +1,81 @@
+name: release
+
+# Packages every skills/<id>/ directory into its own ZIP, hashes it, writes
+# manifest.json and publishes one GitHub Release containing all of them.
+# No build artefacts are committed - dist/ is generated here and thrown away.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'skills/**'
+      - 'scripts/**'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The frontmatter of each skills/<id>/SKILL.md is the source of truth.
+      # registry.json is generated here and shipped as a release asset - it is
+      # never committed, so the repository holds no generated files.
+      - name: Build registry.json
+        run: bash scripts/build-registry.sh
+
+      - name: Package skills
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          count=0
+          for dir in skills/*/; do
+            id="$(basename "$dir")"
+            if [ ! -f "$dir/SKILL.md" ]; then
+              echo "::error file=$dir::skill '$id' has no SKILL.md"
+              exit 1
+            fi
+            (cd "$dir" && zip -qr "$GITHUB_WORKSPACE/dist/$id.zip" .)
+            count=$((count + 1))
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "::error::no skills found under skills/"
+            exit 1
+          fi
+          ls -l dist
+
+      - name: Write manifest and checksums
+        run: |
+          set -euo pipefail
+          tag="v1.0.$GITHUB_RUN_NUMBER"
+          {
+            echo '{'
+            echo '  "version": 1,'
+            printf '  "release": "%s",\n' "$tag"
+            echo '  "skills": {'
+            first=1
+            for zip in dist/*.zip; do
+              id="$(basename "$zip" .zip)"
+              sum="$(sha256sum "$zip" | cut -d' ' -f1)"
+              if [ "$first" -eq 1 ]; then first=0; else echo ','; fi
+              printf '    "%s": { "asset": "%s.zip", "sha256": "%s" }' "$id" "$id" "$sum"
+            done
+            echo
+            echo '  }'
+            echo '}'
+          } > dist/manifest.json
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          cat dist/manifest.json
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" dist/*.zip dist/manifest.json registry.json \
+            --title "$TAG" \
+            --notes "Skill bundles built from ${GITHUB_SHA:0:7}." \
+            --latest
