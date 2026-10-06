@@ -56,9 +56,7 @@ title: "How I wired a headless CMS into my portfolio"
 slug: "headless-cms-portfolio-blog"
 excerpt: "Short summary, one or two sentences. Shows on the blog card and becomes the meta description."
 publishedAt: "2026-10-06T00:00:00.000Z"
-tags:
-  - nextjs
-  - sanity
+tags: [nextjs, sanity, blog, headless, cms]
 coverImage: "headless-cms-portfolio-blog-cover.svg"
 ---
 ```
