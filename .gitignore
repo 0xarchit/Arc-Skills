@@ -1,0 +1,9 @@
+dist/
+_site/
+*.zip
+registry.json
+__pycache__/
+*.pyc
+.claude/settings.local.json
+.DS_Store
+Thumbs.db
