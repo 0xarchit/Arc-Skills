@@ -32,13 +32,23 @@
   function Fail     ($m) { throw $m }
 
   function Get-Text ($url) {
-    if ($PSVersionTable.PSVersion.Major -ge 6) { (Invoke-WebRequest -Uri $url).Content }
-    else { (Invoke-WebRequest -Uri $url -UseBasicParsing).Content }
+    $r = if ($PSVersionTable.PSVersion.Major -ge 6) { Invoke-WebRequest -Uri $url }
+         else { Invoke-WebRequest -Uri $url -UseBasicParsing }
+    # GitHub serves release assets as application/octet-stream, and PowerShell
+    # hands those back as a byte array rather than a string. Without this the
+    # JSON never parses and every lookup comes back empty.
+    if ($r.Content -is [byte[]]) { [System.Text.Encoding]::UTF8.GetString($r.Content) }
+    else { [string]$r.Content }
   }
 
   # Tolerate a UTF-8 BOM - editors on Windows add one, and ConvertFrom-Json
   # fails on it with a cryptic "Invalid JSON primitive".
-  function Convert-Json ($text) { ($text -replace '^﻿', '') | ConvertFrom-Json }
+  function Convert-Json ($text) {
+    # The BOM is matched as the escape \uFEFF, never as a literal character:
+    # Windows PowerShell decodes a BOM-less .ps1 as ANSI, so a literal U+FEFF
+    # becomes three junk characters and the strip silently stops working.
+    ($text -replace '^\uFEFF', '') | ConvertFrom-Json
+  }
 
   function Get-File ($url, $out) {
     if ($PSVersionTable.PSVersion.Major -ge 6) { Invoke-WebRequest -Uri $url -OutFile $out }
@@ -224,6 +234,7 @@
     try { $registry = Convert-Json (Get-Text "$DlBase/$tag/registry.json") }
     catch { Fail "Could not fetch the skill registry from release $tag ($($_.Exception.Message)).`n  Check your internet connection and try again." }
 
+    if (-not $registry -or -not $registry.skills) { Fail "Release $tag has no usable registry.json." }
     $skills = @($registry.skills)
     if ($skills.Count -eq 0) { Fail 'The registry lists no skills (invalid registry?).' }
     Write-Host "`r  " -NoNewline; Write-Host ([char]0x2713) -ForegroundColor Green -NoNewline
