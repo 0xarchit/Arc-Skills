@@ -93,8 +93,24 @@ description: Fixture skill.
   # ---- server -------------------------------------------------------------
   $l = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
   $l.Start(); $port = $l.LocalEndpoint.Port; $l.Stop()
-  $server = Start-Process -FilePath $python -ArgumentList '-m', 'http.server', "$port", '--bind', '127.0.0.1' `
-            -WorkingDirectory $fix -PassThru -WindowStyle Hidden
+  # Serve every fixture file as application/octet-stream, the way GitHub serves
+  # release assets. A plain http.server answers .json as application/json, which
+  # makes Invoke-WebRequest return a string and hides the byte-array path.
+  @'
+import functools, http.server, socketserver, sys
+
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def guess_type(self, path):
+        return "application/octet-stream"
+
+socketserver.TCPServer.allow_reuse_address = True
+with socketserver.TCPServer(("127.0.0.1", int(sys.argv[1])),
+                            functools.partial(Handler, directory=sys.argv[2])) as httpd:
+    httpd.serve_forever()
+'@ | Set-Content -Path (Join-Path $fix 'serve.py') -Encoding ascii
+
+  $server = Start-Process -FilePath $python -ArgumentList (Join-Path $fix 'serve.py'), "$port", $fix `
+            -PassThru -WindowStyle Hidden
   $probe = "http://127.0.0.1:$port/latest.json"
   $ready = $false
   for ($i = 0; $i -lt 60; $i++) {
