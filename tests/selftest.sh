@@ -154,5 +154,13 @@ REGISTRY_OUT="$RSK/x.json" bash scripts/build-registry.sh "$RSK/bad2" >/dev/null
 
 find "$RSK" -depth -delete 2>/dev/null
 
+printf '\nPowerShell source\n'
+
+# Windows PowerShell decodes a BOM-less .ps1 as ANSI. One stray non-ASCII byte
+# (a literal U+FEFF in a regex, say) turns into three junk characters there and
+# the script breaks only on 5.1 - which is exactly how it broke once already.
+nonascii=$(LC_ALL=C tr -d '\000-\177' < install/install.ps1 | wc -c | tr -d ' ')
+check_n "install.ps1 is pure ASCII" "0" "$nonascii"
+
 printf '\n%s passed, %s failed\n\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
