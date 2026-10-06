@@ -1,0 +1,54 @@
+name: pages
+
+# GitHub Pages cannot run a build command, so the site is assembled here: the two
+# bootstrap scripts are copied to the site root so /install.sh and /install.ps1
+# resolve, and registry.json is generated from the skill frontmatter. Neither is
+# committed to the repository.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'CNAME'
+      - 'install/**'
+      - 'skills/**'
+      - 'scripts/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble site
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp index.html CNAME _site/
+          cp install/install.sh install/install.ps1 _site/
+          REGISTRY_OUT=_site/registry.json bash scripts/build-registry.sh
+          ls -l _site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
