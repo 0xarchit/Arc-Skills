@@ -1,9 +1,5 @@
 name: release
 
-# Packages every skills/<id>/ directory into its own ZIP, hashes it, writes
-# manifest.json and publishes one GitHub Release containing all of them.
-# No build artefacts are committed - dist/ is generated here and thrown away.
-
 on:
   push:
     branches: [main]
