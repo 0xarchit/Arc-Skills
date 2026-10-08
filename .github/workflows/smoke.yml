@@ -4,6 +4,11 @@ name: smoke
 # documented one-liner on each platform, from an empty directory, against the
 # published release. The release workflow only proves the artifacts were
 # uploaded; this proves they can be consumed.
+#
+# The wait step exists because this fires the moment the release is published,
+# alongside the Pages deploy. DNS for skills.0xarchit.is-a-dev has been seen
+# resolving in one step and not the next, seconds apart, on the same runner, so
+# the test waits for the endpoint instead of racing it.
 
 on:
   release:
@@ -27,13 +32,26 @@ jobs:
           echo "ids=$ids" >> "$GITHUB_OUTPUT"
           echo "release ships: $ids"
 
+      - name: Wait for the domain
+        run: |
+          set -euo pipefail
+          url=https://skills.0xarchit.is-a-dev/install.sh
+          for i in $(seq 1 24); do
+            echo "-- attempt $i --"
+            getent hosts skills.0xarchit.is-a-dev || echo "  getent: no answer"
+            if curl -fsS -o /dev/null --max-time 10 "$url"; then echo "domain ready"; exit 0; fi
+            sleep 5
+          done
+          echo "::error::$url is not reachable from CI"
+          exit 1
+
       - name: Install with the documented one-liner
         env:
           ARC_SKILLS_SKILLS: ${{ steps.reg.outputs.ids }}
         run: |
           set -euo pipefail
           mkdir -p /tmp/proj && cd /tmp/proj
-          curl -fsSL https://skills.0xarchit.is-a.dev/install.sh | bash | tee /tmp/out.txt
+          curl -fsSL https://skills.0xarchit.is-a-dev/install.sh | bash | tee /tmp/out.txt
           grep -q 'SHA-256 verified' /tmp/out.txt
 
       - name: Verify every skill landed
@@ -80,6 +98,23 @@ jobs:
           $ids = ((Get-Content registry.json -Raw | ConvertFrom-Json).skills.id) -join ','
           "ids=$ids" >> $env:GITHUB_OUTPUT
           Write-Host "release ships: $ids"
+
+      - name: Wait for the domain
+        shell: pwsh
+        run: |
+          $url = 'https://skills.0xarchit.is-a-dev/install.ps1'
+          for ($i = 1; $i -le 24; $i++) {
+            Write-Host "-- attempt $i --"
+            try { Resolve-DnsName skills.0xarchit.is-a-dev -ErrorAction Stop | Select-Object -First 3 | Out-String | Write-Host }
+            catch { Write-Host "  resolve: $($_.Exception.Message)" }
+            try {
+              $null = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing
+              Write-Host 'domain ready'
+              exit 0
+            } catch { Write-Host "  fetch: $($_.Exception.Message)" }
+            Start-Sleep -Seconds 5
+          }
+          throw "$url is not reachable from CI"
 
       # 5.1 and 7 are both in the wild, and 5.1 has broken this installer twice:
       # it decodes a BOM-less .ps1 as ANSI, and it hands back release assets as a
