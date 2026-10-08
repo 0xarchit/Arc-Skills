@@ -35,7 +35,7 @@ jobs:
       - name: Wait for the domain
         run: |
           set -euo pipefail
-          url=https://skills.0xarchit.is-a-dev/install.sh
+          url=http://0xarchit.github.io/Arc-Skills/install.sh
           for i in $(seq 1 24); do
             echo "-- attempt $i --"
             getent hosts skills.0xarchit.is-a-dev || echo "  getent: no answer"
@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/proj && cd /tmp/proj
-          curl -fsSL https://skills.0xarchit.is-a-dev/install.sh | bash | tee /tmp/out.txt
+          curl -fsSL http://0xarchit.github.io/Arc-Skills/install.sh | bash | tee /tmp/out.txt
           grep -q 'SHA-256 verified' /tmp/out.txt
 
       - name: Verify every skill landed
@@ -78,7 +78,7 @@ jobs:
           chmod +x /tmp/stub/unzip
           cd /tmp/proj-nounzip
           export PATH="/tmp/stub:$PATH"
-          curl -fsSL https://skills.0xarchit.is-a-dev/install.sh | bash | tee /tmp/out2.txt
+          curl -fsSL http://0xarchit.github.io/Arc-Skills/install.sh | bash | tee /tmp/out2.txt
           grep -q 'SHA-256 verified' /tmp/out2.txt
           for id in $(echo "${{ steps.reg.outputs.ids }}" | tr ',' ' '); do
             test -s "Agents/skills/$id/SKILL.md" || { echo "::error::missing Agents/skills/$id/SKILL.md without unzip"; exit 1; }
@@ -102,7 +102,7 @@ jobs:
       - name: Wait for the domain
         shell: pwsh
         run: |
-          $url = 'https://skills.0xarchit.is-a-dev/install.ps1'
+          $url = 'http://0xarchit.github.io/Arc-Skills/install.ps1'
           for ($i = 1; $i -le 24; $i++) {
             Write-Host "-- attempt $i --"
             try { Resolve-DnsName skills.0xarchit.is-a-dev -ErrorAction Stop | Select-Object -First 3 | Out-String | Write-Host }
@@ -127,7 +127,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force C:\proj-ps7 | Out-Null
           Set-Location C:\proj-ps7
-          irm https://skills.0xarchit.is-a-dev/install.ps1 | iex
+          irm http://0xarchit.github.io/Arc-Skills/install.ps1 | iex
           foreach ($id in "${{ steps.reg.outputs.ids }}".Split(',')) {
             $f = "Agents/skills/$id/SKILL.md"
             if (-not (Test-Path $f) -or (Get-Item $f).Length -eq 0) { throw "missing $f" }
@@ -142,7 +142,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force C:\proj-ps51 | Out-Null
           Set-Location C:\proj-ps51
-          irm https://skills.0xarchit.is-a-dev/install.ps1 | iex
+          irm http://0xarchit.github.io/Arc-Skills/install.ps1 | iex
           foreach ($id in "${{ steps.reg.outputs.ids }}".Split(',')) {
             $f = "Agents/skills/$id/SKILL.md"
             if (-not (Test-Path $f) -or (Get-Item $f).Length -eq 0) { throw "missing $f" }
