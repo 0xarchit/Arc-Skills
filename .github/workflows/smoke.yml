@@ -42,7 +42,7 @@ jobs:
             if curl -fsS -o /dev/null --max-time 10 "$url"; then echo "domain ready"; exit 0; fi
             sleep 5
           done
-          echo "::error::$url is not reachable from CI"
+          echo "::error::$url did not resolve from CI within 2 minutes. This is a DNS problem with the domain, not a broken installer."
           exit 1
 
       - name: Install with the documented one-liner
@@ -114,7 +114,7 @@ jobs:
             } catch { Write-Host "  fetch: $($_.Exception.Message)" }
             Start-Sleep -Seconds 5
           }
-          throw "$url is not reachable from CI"
+          throw "$url did not resolve from CI within 2 minutes. This is a DNS problem with the domain, not a broken installer."
 
       # 5.1 and 7 are both in the wild, and 5.1 has broken this installer twice:
       # it decodes a BOM-less .ps1 as ANSI, and it hands back release assets as a
