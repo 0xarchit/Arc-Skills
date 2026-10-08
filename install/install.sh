@@ -88,17 +88,36 @@ assert_safe_entries() {
   fi
 }
 
-list_entries() { # $1 = zip path
-  if command -v unzip >/dev/null 2>&1; then unzip -Z1 -- "$1"
-  elif command -v tar >/dev/null 2>&1; then tar -tf "$1"
-  else die "unzip (or tar) is required to extract files."
-  fi
+# A ZIP reader is chosen by probing the actual archive, because the tool name
+# says nothing about capability: bsdtar (macOS `tar`) reads zip, GNU tar (Linux)
+# does not and fails with "This does not look like a tar archive".
+zip_list() { # $1 = tool, $2 = zip
+  case "$1" in
+    unzip)  unzip -Z1 -- "$2" ;;
+    bsdtar) bsdtar -tf "$2" ;;
+    tar)    tar -tf "$2" ;;
+    *)      "$1" -c 'import sys, zipfile
+for n in zipfile.ZipFile(sys.argv[1]).namelist(): print(n)' "$2" ;;
+  esac
 }
 
-extract_zip() { # $1 = zip  $2 = destination dir
-  if command -v unzip >/dev/null 2>&1; then unzip -q -- "$1" -d "$2"
-  else tar -xf "$1" -C "$2"
-  fi
+zip_extract() { # $1 = tool, $2 = zip, $3 = destination dir
+  case "$1" in
+    unzip)  unzip -q -- "$2" -d "$3" ;;
+    bsdtar) bsdtar -xf "$2" -C "$3" ;;
+    tar)    tar -xf "$2" -C "$3" ;;
+    *)      "$1" -m zipfile -e "$2" "$3" ;;
+  esac
+}
+
+# Prints the first candidate that can actually list this archive, or returns 1.
+pick_zip_reader() { # $1 = zip
+  local t
+  for t in unzip bsdtar python3 python tar; do
+    command -v "$t" >/dev/null 2>&1 || continue
+    if zip_list "$t" "$1" >/dev/null 2>&1; then printf '%s' "$t"; return 0; fi
+  done
+  return 1
 }
 
 sha256_of() {
@@ -233,12 +252,24 @@ install_one() { # $1 = skill id
   ok "SHA-256 verified"
 
   printf '  Extracting...\n'
-  if ! list_entries "$zip" | assert_safe_entries; then
+  local reader entries
+  if ! reader=$(pick_zip_reader "$zip"); then
+    rm -f -- "$zip"
+    die "No ZIP reader available for $asset.
+  Install one of: unzip, bsdtar, python3."
+  fi
+  # Keep "the reader failed" and "the archive is unsafe" apart. Run together
+  # under pipefail, a missing unzip reads as a path-traversal rejection.
+  if ! entries=$(zip_list "$reader" "$zip"); then
+    rm -f -- "$zip"
+    die "Could not read $asset (invalid ZIP?)."
+  fi
+  if ! printf '%s\n' "$entries" | assert_safe_entries; then
     rm -f -- "$zip"
     die "Unsafe paths in $asset - refusing to extract. Nothing was installed."
   fi
   mkdir -p "$TMP/x"
-  extract_zip "$zip" "$TMP/x" || die "Could not extract $asset (invalid ZIP?)."
+  zip_extract "$reader" "$zip" "$TMP/x" || die "Could not extract $asset (invalid ZIP?)."
   [ -f "$TMP/x/SKILL.md" ] || die "$asset contains no SKILL.md - not a skill bundle."
 
   mkdir -p -- "$DEST"

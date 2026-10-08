@@ -148,6 +148,23 @@ out=$( { cd "$PROJ" && ARC_SKILLS_API="$FIXURL/badtag.json" ARC_SKILLS_DL="$FIXU
 case "$out" in *"Could not fetch the skill registry"*) ok_t "clean registry error" ;; *) no_t "clean registry error" "$out" ;; esac
 case "$out" in *"at line"*|*"Traceback"*) no_t "no stack trace" "$out" ;; *) ok_t "no stack trace" ;; esac
 
+printf '\nno unzip (the Linux case)\n'
+
+# The reported failure: a Linux box with no unzip fell back to GNU tar, which
+# cannot read zip, and pipefail turned that into "Unsafe paths". Shadow unzip
+# with a failing stub and the install must still succeed quietly.
+STUB="$FIX/stub"; mkdir -p "$STUB"
+{ echo '#!/bin/sh'; echo 'exit 127'; } > "$STUB/unzip"
+chmod +x "$STUB/unzip"
+NOPROJ=$(mktemp -d "${TMPDIR:-/tmp}/arcproj.XXXXXX")
+out=$(run "$NOPROJ" react PATH="$STUB:$PATH" | plain)
+has "$NOPROJ/Agents/skills/react/SKILL.md" "installs with unzip unavailable"
+case "$out" in
+  *"Unsafe paths"*) no_t "no bogus traversal error" "$out" ;;
+  *)                ok_t "no bogus traversal error" ;;
+esac
+find "$NOPROJ" -depth -delete 2>/dev/null
+
 printf '\ntemp cleanup\n'
 leftovers=$(find "$TMPROOT" -maxdepth 1 -name 'arc-skills.*' 2>/dev/null | wc -l | tr -d ' ')
 check "no temp dirs left behind" "$TMP_BEFORE" "$leftovers"
