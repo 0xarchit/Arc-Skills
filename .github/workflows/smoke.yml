@@ -1,0 +1,115 @@
+name: smoke
+
+# Runs after a release is published and installs it the way a user would: the
+# documented one-liner on each platform, from an empty directory, against the
+# published release. The release workflow only proves the artifacts were
+# uploaded; this proves they can be consumed.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: linux, curl
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read the release registry
+        id: reg
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/${{ github.repository }}/releases/latest/download/registry.json" -o /tmp/registry.json
+          ids=$(jq -r '.skills[].id' /tmp/registry.json | paste -sd, -)
+          echo "ids=$ids" >> "$GITHUB_OUTPUT"
+          echo "release ships: $ids"
+
+      - name: Install with the documented one-liner
+        env:
+          ARC_SKILLS_SKILLS: ${{ steps.reg.outputs.ids }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/proj && cd /tmp/proj
+          curl -fsSL https://skills.0xarchit.is-a.dev/install.sh | bash | tee /tmp/out.txt
+          grep -q 'SHA-256 verified' /tmp/out.txt
+
+      - name: Verify every skill landed
+        run: |
+          set -euo pipefail
+          cd /tmp/proj
+          for id in $(echo "${{ steps.reg.outputs.ids }}" | tr ',' ' '); do
+            test -s "Agents/skills/$id/SKILL.md" || { echo "::error::missing Agents/skills/$id/SKILL.md"; exit 1; }
+            echo "ok $id"
+          done
+          find Agents -type f | sort
+
+      # ubuntu runners have unzip, but plenty of Linux boxes do not. Shadowing it
+      # with a failing stub is the exact case that shipped broken once: the
+      # installer fell back to GNU tar, and pipefail reported that as a
+      # path-traversal rejection.
+      - name: Install with unzip unavailable
+        env:
+          ARC_SKILLS_SKILLS: ${{ steps.reg.outputs.ids }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/stub /tmp/proj-nounzip
+          printf '#!/bin/sh\nexit 127\n' > /tmp/stub/unzip
+          chmod +x /tmp/stub/unzip
+          cd /tmp/proj-nounzip
+          export PATH="/tmp/stub:$PATH"
+          curl -fsSL https://skills.0xarchit.is-a-dev/install.sh | bash | tee /tmp/out2.txt
+          grep -q 'SHA-256 verified' /tmp/out2.txt
+          for id in $(echo "${{ steps.reg.outputs.ids }}" | tr ',' ' '); do
+            test -s "Agents/skills/$id/SKILL.md" || { echo "::error::missing Agents/skills/$id/SKILL.md without unzip"; exit 1; }
+          done
+          echo "installed without unzip"
+
+  windows:
+    name: windows, irm
+    runs-on: windows-latest
+    steps:
+      - name: Read the release registry
+        id: reg
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/latest/download/registry.json" -OutFile registry.json
+          $ids = ((Get-Content registry.json -Raw | ConvertFrom-Json).skills.id) -join ','
+          "ids=$ids" >> $env:GITHUB_OUTPUT
+          Write-Host "release ships: $ids"
+
+      # 5.1 and 7 are both in the wild, and 5.1 has broken this installer twice:
+      # it decodes a BOM-less .ps1 as ANSI, and it hands back release assets as a
+      # byte array rather than a string.
+      - name: Install with the documented one-liner (PowerShell 7)
+        shell: pwsh
+        env:
+          ARC_SKILLS_SKILLS: ${{ steps.reg.outputs.ids }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force C:\proj-ps7 | Out-Null
+          Set-Location C:\proj-ps7
+          irm https://skills.0xarchit.is-a-dev/install.ps1 | iex
+          foreach ($id in "${{ steps.reg.outputs.ids }}".Split(',')) {
+            $f = "Agents/skills/$id/SKILL.md"
+            if (-not (Test-Path $f) -or (Get-Item $f).Length -eq 0) { throw "missing $f" }
+            Write-Host "ok $id"
+          }
+
+      - name: Install with the documented one-liner (Windows PowerShell 5.1)
+        shell: powershell
+        env:
+          ARC_SKILLS_SKILLS: ${{ steps.reg.outputs.ids }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force C:\proj-ps51 | Out-Null
+          Set-Location C:\proj-ps51
+          irm https://skills.0xarchit.is-a-dev/install.ps1 | iex
+          foreach ($id in "${{ steps.reg.outputs.ids }}".Split(',')) {
+            $f = "Agents/skills/$id/SKILL.md"
+            if (-not (Test-Path $f) -or (Get-Item $f).Length -eq 0) { throw "missing $f" }
+            Write-Host "ok $id"
+          }
